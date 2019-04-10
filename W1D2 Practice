@@ -1,0 +1,174 @@
+ ----------------------------------------------------CHAP 1 SELECT 실습문제-------------------------------------
+
+---------------------------장경관  04/09/19------------------------------------------------------------------------------
+       desc emp;
+ 
+--WEHRE-------------------------------------------------------------------
+
+--WHERE 절 문제 1: EMP Table 에서 sal 가 3000이상인 사원의 사원번호(empno), 이름(ename), 업무 (job), 급여 (sal)출력
+SELECT empno AS "사원번호",
+       ename AS "이름",
+       job AS "업무",
+       sal AS "급여"
+  FROM emp
+ WHERE sal >= 3000;
+ 
+-- Checking
+select *
+  from emp
+ order by sal desc;
+ 
+--WHERE 절 문제 2: EMP Table에서 당담업무가 Manager인 사원의 정보를 사원본호, 성명, 업무, 급여, 부서번호를 출력
+SELECT EMPNO AS 사원번호,
+       ENAME AS 성명,
+       JOB AS 업무,
+       SAL AS 급여,
+       DEPTNO AS 부서번호
+  FROM EMP
+ WHERE UPPER(JOB) = 'MANAGER';
+ 
+--WHERE 절 문제 3: EMP 테이블에서 1982/1/1 이후에 입사한 사원의 사원번호, 성명, 업무, 급여, 입사일자, 부서번호 출력
+SELECT EMPNO AS "EMPLOYEE #",
+       ENAME AS NAME,
+       JOB AS JOB,
+       SAL AS SALARY,
+       HIREDATE AS "HIRED DATE"
+  FROM EMP
+ WHERE HIREDATE >= TO_DATE('1982/01/01', 'YYYY/MM/DD')
+ ORDER BY HIREDATE;
+ 
+--3_2 DIFFERNET APPROACH
+ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY/MM/DD';
+
+SELECT *
+  FROM EMP
+ WHERE HIREDATE >= '1982/01/01';
+ 
+--연산자-----------------------------------------------------------------------------------
+
+--1) EMP TABLE에서 습여가 1300에서 1700 사이인 사원의 성명, 업무, 급여, 부서번호 풀력
+SELECT ENAME AS NAME,
+       JOB,
+       SAL AS SALARY,
+       DEPTNO AS "DEPARTMENT #"
+  FROM EMP
+ WHERE SAL BETWEEN 1300 AND 1700;
+ 
+--2) EMP TABLE에서 사원번호가 7902, 7788, 7566인 사원의 사원번호, 성명, 업부, 급여 입사일자 출력
+SELECT EMPNO AS "EMPLOYEE #",
+       ENAME AS NAME,
+       JOB,
+       SAL AS SALARY
+  FROM EMP
+ WHERE EMPNO IN(7902,
+               7788,
+               7566);
+ 
+--2_2) Difference way to approach the problem
+SELECT EMPNO,
+       ENAME,
+       JOB,
+       SAL
+  FROM EMP
+ WHERE EMPNO = 7902
+    OR EMPNO = 7788
+    OR EMPNO = 7566;
+ 
+--3) EMP에서 입사일자가 82년도에 입사한 사원의 사원번호, 성명, 담당업부, 급여, 입사일자, 부서번호 출력
+SELECT EMPNO,
+       ENAME,
+       JOB,
+       DEPTNO,
+       HIREDATE,
+       DEPTNO
+  FROM EMP
+ WHERE HIREDATE BETWEEN '1982/01/01' AND '1983/01/01';
+ 
+--4) EMP에서 첫글짜가 M 이신분 성명, 급여
+SELECT ENAME,
+       SAL
+  FROM EMP
+ WHERE UPPER(ENAME) LIKE 'M%';
+ 
+--5) 이름의 두 번째 글짜가 'L'인 분 이름, 업무 출력
+SELECT 'PERSON WITH ''L'' IN THE SECOND MIDDLE IS ' || ENAME || ' HAS THIS ' || JOB || ' JOB.' AS "SPECIAL NAME PEOPLE"
+  FROM EMP
+ WHERE ENAME LIKE '_L%';
+ 
+--6) 보너스(COMM)가 NULL인 사원의 사원번호, 이름, 업무, 급ㅇ, 입사일자, 부서번호 출력
+SELECT EMPNO,
+       ENAME,
+       JOB,
+       SAL,
+       HIREDATE,
+       DEPTNO
+  FROM EMP
+ WHERE COMM IS NULL;
+ 
+--7) 급여가 1100 이상이고 JOB이 MANAGER인 사원의 번호, 성명, 업무, 급여, 입사일자, 부서번호 출력
+SELECT EMPNO,
+       ENAME,
+       JOB,
+       SAL,
+       HIREDATE,
+       DEPTNO
+  FROM EMP
+ WHERE SAL >= 1100
+   AND JOB = upper('Manager');
+ 
+--8) 급여가 1100이상이거나, 이름이 M으로 시작하지 않는 사언의 사원번호, 성명, 담당업무, 급여, 입사일자, 부서번호 출력
+SELECT EMPNO,
+       ENAME,
+       JOB,
+       HIREDATE,
+       DEPTNO
+  FROM EMP
+ WHERE SAL >= 1100
+   AND ENAME NOT LIKE 'M%';
+ 
+--9) EMP에서 JOB이 MANAGER, CLERK, ANALYST가 아닌 사원의 사원번호, 성명, 업무, 급여, 부서번호 출력
+SELECT EMPNO,
+       ENAME,
+       JOB,
+       SAL,
+       DEPTNO
+  FROM EMP
+ WHERE UPPER(JOB) NOT IN ('MANAGER',
+               'CLERK',
+               'ANALYST');
+ 
+--10) EMP에서 JOB이 PRESIDENT이고 급여가 1500 이상이거나 업무가 SALESMAN인 사원의 사원번호, 이름, 업무, 급여 출력
+SELECT EMPNO AS "EMPLOYEE #",
+       ENAME AS NAME,
+       JOB,
+       SAL AS SALARY
+  FROM EMP
+ WHERE UPPER(JOB) = 'PRESIDENT'
+   AND SAL >= 1500
+    OR UPPER(JOB) = 'SALESMAN';
+ 
+--정렬---------------------------------------------------------------------------------------------
+
+--1) EMP에서 가장 최근 입사한 순으로 사원번호, 이름, 업무, 급여, 입사일자, 부서번호 출력
+SELECT EMPNO AS "EMPLYEE #",
+       ENAME AS "NAME",
+       SAL AS "SALARY",
+       HIREDATE "HIRED DATE",
+       DEPTNO AS "DEPARTMENT #"
+  FROM SCOTT.EMP
+ ORDER BY HIREDATE ASC;
+ 
+--2) EMP에서 부서번호로 정렬한 후 부서번호가 같을 경우 급여가 많은 순으로 정렬하여 사원번호, 성명, 업무, 부서번호, 급여 출력
+SELECT EMPNO,
+       ENAME,
+       JOB,
+       DEPTNO,
+       SAL
+  FROM EMP
+ ORDER BY DEPTNO,
+       SAL DESC;
+ 
+--3) 부서별로 담당하는 업무를 한번씩 조회하라. 단, 업무 기준으로 정렬해서 나오도록 한다
+SELECT DISTINCT JOB
+  FROM SCOTT.EMP
+ ORDER BY JOB ASC;
