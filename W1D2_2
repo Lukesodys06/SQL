@@ -1,0 +1,36 @@
+---------------------------DAY TWO PRACTICE QUESTIONS----------------------------------
+---------------------LUKE JANG -------------------------------------------------------
+
+--1. emp 테이블에서 커미션(comm)을 받지 않는 사원의 급여를 10% 인상하여 표시하되, 
+--다음의 형식으로 출력하여라.
+--The salary of SMITH after a 10% raise is 880
+SELECT 'The salary of ' || ENAME || ' after a 10% raise is ' || SAL*1.1
+  FROM EMP
+ WHERE COMM IS NOT NULL;
+DESC PROFESSOR;
+--2. emp 테이블에서 12월에 입사한 사람은 보너스를 줄 수 없다고 한다.
+--12월에 입사한 사람의 사번, 이름, 부서번호를 조회하여라.
+ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY/MM/DD';
+SELECT EMPNO, ENAME, DEPTNO
+  FROM EMP
+ WHERE SUBSTR(HIREDATE, 6, 2) = 12;
+ 
+--3. professor 테이블에서 각 교수의 이메일 아이디를 출력하되,
+--다음의 특수기호를 제거한 형태로 출력하여라.
+--'-' 또는 '_'
+SELECT NAME, TRANSLATE(EMAIL, '1!@#-_#$%^*(', '1')
+  FROM PROFESSOR;
+  
+--4. EMPLOYEES 테이블에서 대소를 구분하지 않고 email에 last_name이 포함되어 있지 않은 
+--사람의 EMPLOYEE_ID, FIRST_NAME, EMAIL을 출력하여라.
+SELECT LAST_NAME, EMAIL
+  FROM EMPLOYEES
+ WHERE UPPER(EMAIL) LIKE '%' || UPPER(LAST_NAME) || '%'; 
+ 
+ 
+--5. student 테이블에서 성이 'ㅅ'인 학생의 학번, 이름, 학년을 출력하여라.
+SELECT * FROM STUDENT;
+SELECT STUDNO, NAME, GRADEMHARTSTE
+  FROM STUDENT
+ WHERE SUBSTRB(NAME, '1', '2') >= '사' AND SUBSTRB(NAME, '1', '2') <'아';
+ 
