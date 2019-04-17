@@ -196,4 +196,4 @@ SELECT *
                  FROM PROFESSOR P2
                 WHERE P1.DEPTNO = P2.DEPTNO     --상호연관 SUB QUERY!
                 GROUP BY DEPTNO);
-  
+  ----
