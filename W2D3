@@ -1,0 +1,261 @@
+--=======================Week 2 Day 3============================--
+--======================Kyung Kwan Jang=========================--
+
+--ex) 본인보다 학점이 높음 
+-- Student, Exam_01 테이블을 사용하여 각 학년에서 본인보다 시험점수가 높은 학생수 출력
+select * from student;
+select * from exam_01;
+
+--A) 
+
+
+SELECT S1.NAME,
+       S1.GRADE,
+       E1.TOTAL,
+       COUNT(S2.NAME)
+  FROM STUDENT S1,
+       EXAM_01 E1,
+       STUDENT S2,
+       EXAM_01 E2
+ WHERE S1.STUDNO = E1.STUDNO
+   AND S2.STUDNO = E2.STUDNO
+   AND S1.GRADE = S2.GRADE
+   AND E1.TOTAL < E2.TOTAL    --------WHERE IT NEEDS OUTER
+ GROUP BY S1.NAME,
+       S1.GRADE,
+       E1.TOTAL
+ ORDER BY 2;
+
+
+--> THE BEST SCORE IS NOT THERE => OUTER JOIN... 
+-- JOIN IS BETTER THAN SUB QUERY...!
+  
+SELECT S1.NAME,
+       S1.GRADE,
+       E1.TOTAL,
+       COUNT(S2.NAME)
+  FROM STUDENT S1,
+       EXAM_01 E1,
+       STUDENT S2,
+       EXAM_01 E2
+ WHERE S1.STUDNO = E1.STUDNO(+)
+   AND S2.STUDNO(+) = E2.STUDNO
+   AND S1.GRADE(+) = S2.GRADE
+   AND E1.TOTAL < E2.TOTAL(+)    --------WHERE IT NEEDS OUTER
+ GROUP BY S1.NAME,
+       S1.GRADE,
+       E1.TOTAL
+ ORDER BY 2;
+ 
+ ----
+ S1 (+) -    E1
+ |       |
+ S2(+) - E2(+);
+ 
+ ------DAMN THAT WAS HARD!!
+ 
+ SELECT S1_NAME,
+       S1_GRADE,
+       E1_TOTAL,
+       COUNT(S2_NAME)
+  FROM (SELECT S1.GRADE AS S1_GRADE, E1.TOTAL AS E1_TOTAL, S1.NAME AS S1_NAME FROM STUDENT S1, EXAM_01 E1 WHERE S1.STUDNO = E1.STUDNO),   
+       (SELECT S2.GRADE AS S2_GRADE, E2.TOTAL AS E2_TOTAL, S2.NAME AS S2_NAME FROM STUDENT S2, EXAM_01 E2 WHERE S2.STUDNO = E2.STUDNO)
+WHERE E1_TOTAL < E2_TOTAL(+) AND S1_GRADE = S2_GRADE(+)
+GROUP BY S1_NAME,
+       S1_GRADE,
+       E1_TOTAL
+ORDER BY 2 DESC, 3 DESC;
+
+
+--CTRL + E TO SEE PERFORMANCE!              --- INDEX IS INTALLED IN THE TABLE --
+SELECT * FROM EMP WHERE EMPNO = 7499;     --INDEX IS THERE!!!
+SELECT * FROM EMP WHERE ENAME = 'ALLEN';
+
+
+--======== 상호연관 서브쿼리         ==============---
+
+--professor 테이블에서 각 부서별 최대연봉을 갖는 교수의 이름, 교수번호,
+--pay를 출력하세요.
+
+SELECT *
+  FROM PROFESSOR
+ WHERE (DEPTNO,
+               PAY) IN (SELECT DEPTNO,
+               MAX(PAY)
+          FROM PROFESSOR
+         GROUP BY DEPTNO);
+ 
+SELECT *
+  FROM PROFESSOR P1
+ WHERE P1.DEPTNO = DEPTNO           -----ALWAYS TRUE THEREFORE
+   AND PAY IN (SELECT MAX(PAY)
+          FROM PROFESSOR 
+         GROUP BY DEPTNO);
+
+SELECT *
+  FROM PROFESSOR P1
+ WHERE P1.DEPTNO = P2.DEPTNO           -----P2 안되는 이유: 메인 쿼리에서 DECLARE 안되서
+   AND PAY IN (SELECT MAX(PAY)
+          FROM PROFESSOR P2
+         GROUP BY DEPTNO);
+
+        
+--WHY DOES IT WORK? 
+SELECT *    -- STEP 7
+  FROM PROFESSOR P1                     -- STEP1
+ WHERE PAY /* <- STEP2 */ IN (SELECT MAX(PAY) -- STEP 6         
+          FROM PROFESSOR P2                         -- STEP 3
+          WHERE P1.DEPTNO = P2.DEPTNO               -- STEP 4
+         GROUP BY DEPTNO);                          -- STEP 5
+
+SELECT * FROM PROFESSOR P, (SELECT 
+
+
+               
+--상호연관 sql 실행 순서
+
+step1) emp2 테이블에서 첫 행의 position 확인
+step2) 구한 position(대표이사)을 서브쿼리로 전달
+step3) 서브쿼리에서 전달받은 position(대표이사)별 max(pay) 계산 
+step4) 메인쿼리의 pay와 서브쿼리의 max(pay) 비교
+;
+--EX) EMP2 에서 POSITION 별 MAX 연봉을 받는 사람 출력
+SELECT * FROM EMP2;
+
+
+SELECT *
+  FROM EMP2 E
+ WHERE E.PAY in (SELECT MAX(PAY) AS MAX_PAY               --performance wise : not too good  !!!
+          FROM EMP2 E1
+         WHERE E.POSITION = E1.POSITION);
+         GROUP BY POSITION); 
+
+SELECT *
+  FROM EMP2 E
+ WHERE E.PAY = (SELECT MAX(PAY) AS MAX_PAY               --performance wise : not too good  !!!
+          FROM EMP2 E1
+         WHERE E.POSITION = E1.POSITION);
+        -- GROUP BY POSITION);                          -- GROUP BY IS NOT NEEDED!!
+
+-- emp 테이블에서 직업별 최대연봉을 구하고, 직업별 최대연봉을 갖는
+--직원의 이름, 직업, 연봉을 구하세요. 
+
+
+--student 테이블을 조회하여 각 학년별로 최대키를 가진 학생들의
+--학년과 이름과 키를 출력하세요.
+
+--==================== SCALA SUB QUERY========================--
+-- 스칼라 서브쿼리 : select 절에 사용되는 서브쿼리
+-- 컬럼의 전체 내용을 특정 값으로 대체하고 자 할 경우 사용
+
+--emp 테이블에서 deptno가 10인 직원의 deptno를 smith의 deptno와 
+--같게하여 deptno를 출력하여라.
+;
+SELECT ENAME, EMPNO, 20 FROM EMP WHERE DEPTNO = 10;
+
+SELECT DEPTNO FROM EMP WHERE ENAME = 'SMITH';
+
+
+SELECT ENAME,
+       EMPNO,
+       (SELECT DEPTNO                   --MAKE IT AS SUB QUERY SINCE WH0 KNOW WHEN SMITH WILL CHANGE HIS DEPTNO...
+          FROM EMP
+         WHERE ENAME = 'SMITH')
+  FROM EMP
+ WHERE DEPTNO = 10;
+
+--* IF ENAME HAS TWO SAME VAULES ..
+
+SELECT ENAME,
+       EMPNO,
+       (SELECT DEPTNO                   
+          FROM EMP
+         WHERE ENAME LIKE 'S%')         -- DOES NOT WORK SINCE COLUMN NEED ONE PER VALUE!
+  FROM EMP
+ WHERE DEPTNO = 10;
+ 
+--student 테이블에서 제1전공이 101인 학생들의 이름, 학과 이름을
+--출력하되, 제1전공이 301인 학생과 동일하게 나타내어라.
+SELECT * FROM STUDENT;
+SELECT * FROM DEPARTMENT;
+
+SELECT NAME, DNAME, (SELECT DNAME FROM DEPARTMENT D1 WHERE DEPTNO = 301 )
+  FROM STUDENT S, DEPARTMENT D
+ WHERE DEPTNO1 = 101 AND DEPTNO1 = DEPTNO;
+ 
+--INSTRUCTER'S ANSWER
+SELECT NAME, STUDNO, (SELECT DNAME FROM DEPARTMENT WHERE DEPTNO = 301)          --- may appear it needs Join between DEPARTMENT AND STUDENT, BUT NOOOOO.
+  FROM STUDENT
+ WHERE DEPTNO1 = 101;
+ 
+--emp2 테이블에서 1000번 부서의 직원 이름, 고용형태, 부서명을 출력하되
+--1007번 부서의 부서명을 부여하여 출력하여라. 
+
+--2) 테이블끼리의 조인 대신 스칼라 서브쿼리로 작성 가능(상호연관 서브쿼리)    ----!!!!!!
+SELECT * FROM EMP2;
+SELECT * FROM DEPT2;
+
+SELECT NAME, EMP_TYPE, DNAME
+  FROM EMP2 E, DEPT2 D
+ WHERE E.DEPTNO = D.DCODE;
+
+SELECT E.ENAME, D.DNAME
+  FROM EMP E, DEPT D
+ WHERE E.DEPTNO = D.DEPTNO;
+
+SELECT * FROM EMP;
+SELECT * FROM DEPT;
+SELECT E.ENAME, (SELECT D.DNAME FROM DEPT D WHERE E.DEPTNO = D.DEPTNO)
+  FROM EMP E;
+
+SELECT D.DNAME FROM DEPT D;
+
+
+------- BENEFIT OF SCALA QUERY
+--emp 테이블을 이용하여 상위 관리자 명을 출력하세요.
+
+SELECT * FROM EMP;
+
+--SCALA JOIN
+SELECT E1.ENAME, (SELECT ENAME FROM EMP E2 WHERE E2.EMPNO = E1.MGR)     --- NO NEED TO DO OUTER (+). IT RETURNS 'NULL'
+  FROM EMP E1;
+  
+--SELF OUTER JOIN
+SELECT E1.ENAME, E2.ENAME
+  FROM EMP E1, EMP E2
+ WHERE E1.MGR = E2.EMPNO(+)
+ 
+ ---=== SO WHY DOES IT WORKS?
+ -- ACCORDING TO ''MAIN'' QUERY FROM - EMP.E1. MEANS PRINT ALL
+ --- WHEN YOU USE WHERE -- IT CAN ELIMINATE ROW!
+ 
+ 
+ -- dept2 테이블을 이용하여 상위부서명을 다음과 같이 출력하세요.
+-- 경영지원부의 상위부서는 사장실 입니다.
+--단, 상위부서가 없는 경우는 본인부서명이 출력되도록 하여라.
+;
+SELECT * FROM DEPT2;
+
+SELECT DNAME || '의 상의부서는 ' || NVL((SELECT DNAME FROM DEPT2 D2 WHERE D1.PDEPT = D2.DCODE), D1.DNAME) || '입니다' AS RESULT ----- NVL 밖에서 처리하세요~
+  FROM DEPT2 D1;
+  
+SELECT D1.DNAME || '의 상의부서는 ' || NVL(D2.DNAME, D1.DNAME) || '입니다.'
+  FROM DEPT2 D1, DEPT2 D2
+ WHERE D1.PDEPT = D2.DCODE(+);
+
+-- STUDENT, EXAM_01, HAKJUM 테이블을 이용하여 각 학생의 이름, 점수, 학점을
+--출력하도록 하여라(스칼라 서브쿼리)
+
+SELECT * FROM HAKJUM;
+SELECT * FROM EXAM_01;
+
+SELECT NAME, (SELECT E.TOTAL FROM EXAM_01 E WHERE S.STUDNO = E.STUDNO), (SELECT H.GRADE FROM HAKJUM H, EXAM_01 E1 WHERE S.STUDNO = E1.STUDNO AND E1.TOTAL BETWEEN H.MIN_POINT AND H.MAX_POINT)
+  FROM STUDENT S;
+  
+
+
+
+
+
+
+
