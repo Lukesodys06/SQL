@@ -1,0 +1,314 @@
+--==========================WEEK 3 DAY 2==============================--
+----------------------------KYUNG KWAN JANG-----------------------------
+
+--==INDEX==--
+-- 1) TYPE
+-- UNIQUE INDEX          - UNIQUE SCAN
+-- NON UNIQUE INDEX      - RANGE SCAN
+-- DESCENDING INDEX      - EX) RECENT PURCHASE ACTIVITY : USEFUL
+-- COMPOSITE INDEX       - COMBINATION (결합! TUNNING 의 핵심)
+CREATE INDEX IDX_STD_NAME ON STUDENT(NAME);
+DROP INDEX IDX_STD_NAME;
+CREATE INDEX IDX_STD_GRADE ON STUDENT(GRADE);
+
+SELECT GRADE, NAME, DEPTNO1
+  FROM STUDENT
+ WHERE GRADE = 4
+   AND NAME = '서진수';
+ 
+ SELECT GRADE, ROWID FROM STUDENT ORDER BY GRADE;  -- SHOW HOW INDEX IS MADE
+
+
+SELECt *
+  FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));
+-------------------------------------------------------------------------------------------------------                                                                                                                                                                                                     
+| Id  | Operation                   | Name          | Starts | E-Rows | A-Rows |   A-Time   | Buffers |                                                                                                                                                                                                     
+-------------------------------------------------------------------------------------------------------                                                                                                                                                                                                     
+|   0 | SELECT STATEMENT            |               |      1 |        |      1 |00:00:00.01 |       4 |                                                                                                                                                                                                     
+|*  1 |  TABLE ACCESS BY INDEX ROWID| STUDENT       |      1 |      1 |      1 |00:00:00.01 |       4 |                                                                                                                                                                                                     
+|*  2 |   INDEX RANGE SCAN          | IDX_STD_GRADE |      1 |      5 |      5 |00:00:00.01 |       2 |      ;                                                                                                                                                                                               
+-------------------------------------------------------------------------------------------------------                                                                                                                                                                                                   
+
+CREATE INDEX IDX_STD_GRADE_NAME ON STUDENT(GRADE, NAME);     -----< THIS IS COMPOSITE INDEX
+ SELECT GRADE, NAME, ROWID FROM STUDENT ORDER BY GRADE, NAME;
+------------------------------------------------------------------------------------------------------------                                                                                                                                                                                                
+| Id  | Operation                   | Name               | Starts | E-Rows | A-Rows |   A-Time   | Buffers |                                                                                                                                                                                                
+------------------------------------------------------------------------------------------------------------                                                                                                                                                                                                
+|   0 | SELECT STATEMENT            |                    |      1 |        |      1 |00:00:00.01 |       3 |                                                                                                                                                                                                
+|   1 |  TABLE ACCESS BY INDEX ROWID| STUDENT            |      1 |      1 |      1 |00:00:00.01 |       3 |                                                                                                                                                                                                
+|*  2 |   INDEX RANGE SCAN          | IDX_STD_GRADE_NAME |      1 |      1 |      1 |00:00:00.01 |       2 |                                                                                                                                                                                                
+------------------------------------------------------------------------------------------------------------ 
+;
+
+SELECT GRADE, NAME, DEPTNO1         --NOW FULL SCAN IS HAPPENING!
+  FROM STUDENT
+ WHERE NAME = '서진수';
+
+--순서 정말 중요!!!
+-- CHANGING THE ORDER OF 결합 INDEX!
+DROP INDEX IDX_STD_GRADE_NAME;
+CREATE INDEX IDX_STD_GRADE_NAME ON STUDENT(GRADE, NAME);
+
+-- NOW RANGE SCANE!!!
+
+--****** 결합 컬럼에서 선두 컬럼이 WHERE절에서 제외 되면 INDEX 안을 수 있다 ~~~~*****
+
+-- INDEX FULL SCAN?! - 목차를 다 확인.
+
+
+
+-- FBI (FUNCTON BASED)   - INSTEAD OF JUST COLUMN, BUT WITH FUNCTION  EX) ROUND(COLUMN)
+CREATE INDEX IDX_STD_JUMIN ON STUDENT(JUMIN);
+
+SELECT *
+  FROM STUDENT
+ WHERE JUMIN = '7510231901813';             -- RANGE SCAN PERFORMED!
+ 
+ 
+ 
+ --DYNAMIC PERFORMANCE VIEW
+ 
+ SELECT *
+   FROM STUDENT
+  WHERE JUMIN = 7510231901813;              -- TABLE FULL SCAN!! REASON WHY WE SHOULD BE MINDFUL!
+  -- 묵시적 형 변환 발생!!! ㅁ
+ SELECT * FROM STUDENT WHERE TO_NUMBER(JUMIN) = 7510231901813; -- SAME AS UP VERSION
+ 
+ SELECT * FROM STUDENT WHERE SUBSTR(JUMIN, 3, 2) = '12';
+ 
+ -- STUDENT TABLE 에서 JUMIN COLUMN 을 사용하여 12월에 태어난 사람을 찾는 쿼리 작성
+ -- 조건절에 SUBSTR(JUMIN, 3, 2)이 필요하고 이 조건을 쓰는 순간 JUMIN 에 걸린 인덱스 활용 - NO!
+ -- 따라서 SUBSTR(JUMIN, 3, 2) 정보로 만들어진 인덱스 필요
+ 
+CREATE INDEX FBI_STD_JUMIN ON STUDENT(SUBSTR(JUMIN, 3, 2));
+  
+SELECT * FROM STUDENT WHERE SUBSTR(JUMIN, 3, 2) = '12';
+  
+
+-- 2)
+-- TABLE FULL SCAN----------------------------
+-조건절에 컬럼에 인덱스가 없을 경우
+-인덱스가 있지만 조건절에 인덱스 선두 컬럼이 없을 경우
+-인덱스가 있더라도 TABLE FULL SCAN이 더 효과적이라고 판단 할 경우 발생
+-*- MULTI BLOCK READ 기능 (최신버젼에서만,,)
+
+-- INDEX RANGE SCAN--------------------------
+-수직, 수평 스켄 둘 다 발생
+-선탣된 대상이 하나 이상이면서 INDEX SCAN을 통해 데이터를 찾는경우
+- 인덱스의 선두 컬럼을 포함 하는 경우 발생
+-UNIQUE 컬럼 NON UNIQUE INDEX를 생성할 경우도 발생
+;
+CREATE INDEX IDX_EMP_ENAME ON EMP(ENAME);   -- UNIQUE한 ENAME 을 NON-UNIQUE INDEX로 만듬
+
+SELECT * FROM EMP WHERE ENAME = 'ALLEN';
+
+-- INDEX FULL SCAN--------------------------
+- 수직적 탐색 없이 수평적 탐색만을 수행
+- 데이터를 검색하기 위한 최적의 인덱스가 없을 차선책으로 발생;
+
+-- INDEX FAST FULL SCAN 으로 진화------------------------
+- MULTI BLOCK SCANING
+
+SELECT /*+ INDEX_FFS IDX_EMP_DEPTNO_SAL) */ * FROM EMP WHERE SAL = 3000;
+
+-- INDEX UNIQUE SCAN----------------------------------
+- 수직적 탐색만으로 UNIQUE한 대상을 찾는 과정
+- UNIQUE INDEX가 생성 되었을때 가능!
+- 단 한 건 출력 시 (= 연산) 만!
+
+SELECT * FROM EMP WHERE EMPNO = 7499;
+
+-- INDEX SKIP SCAN-------------------------------------
+--선두 컬럼 제외단 상황에서 ㄱㄱ?!?
+- 인덱스의 선두 컬럼이 제외된 경우 차선택으로 발생
+- (TABLE FULL SCAN, INDEX FULL SCAN도 함께 고려)
+- 선두 컬럼의 DISTINCT 값 수가 적을 때 INDEX SKIP SCAN이 효률적!!
+
+---HOW TO MANUALLY ACTIVATE ISS-- VIA HINT!
+SELECT /*+ INDEX_SS(STUDENT IDX_STD_GRADE_NAME) */ GRADE, NAME, DEPTNO1
+  FROM STUDENT
+ WHERE NAME = '서진수';
+CREATE INDEX IDX_EMP_DEPTNO_SAL ON EMP(DEPTNO, SAL);
+--------------------------------
+
+SELECT DEPTNO, SAL, ROWID FROM EMP ORDER BY DEPTNO, SAL;
+
+SELECT * FROM EMP WHERE SAL = 3000;
+
+SELECT /*+ INDEX_SS(EMP IDX_EMP_DEPTNO_SAL) */ * FROM EMP WHERE SAL = 3000;
+
+ SELECt *
+  FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));
+
+--** 다른 인덱스를 스켄 하도록 (참고)
+SELECT /*+ INDEX(TABLE_NAME INDEX_NAME) */ * FROM EMP WHERE SAL = 3000;
+
+---====================================================----
+
+--PRIMARY KEY 
+
+--HOW TO DROP INDEX
+DROP INDEX INDEX_NAME;
+
+-- 실행계획: OPTIMIZER가 성능에 대한 정보(통계정보)를 활용하여
+-- SQL 이 실행되는 모든 경우의 수의 비용 (COST)를 계산하고 그것을 토대로 최적의 길을 수행,
+-- 그것의 과종의 표현된 것
+
+-- OPTIMIZER PROBLEM POSSIBILITY
+    --- 통계정보 최신화 및 MIS-INFOMATION
+
+--1. 실행계획응 보는 USER에서 권한 부여
+GRANT DBA TO SCOTT; --(SYSTEM 계정으로 수정)
+
+--2. 해당 세션에서 실행 계힉을 상세히 볼 수 있도록 아래 수행
+ALTER SESSION SET STATISTICS_LEVEL = ALL;
+
+--3. 조회하고자 하는 퀴리 실행
+
+SELECT NAME, PAY
+  FROM EMP2
+ WHERE PAY*1.1 > 72000000;
+ 
+ SELECT NAME, PAY
+  FROM EMP2
+ WHERE PAY > 72000000/1.1;
+
+--4. 아래 쿼리로 실제 실행 계획 확인
+SELECt *
+  FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));
+  
+
+--RESULT!
+------------------------------------------------------------------------------------                                                                                                                                                                                                                  
+| Id  | Operation         | Name | Starts | E-Rows | A-Rows |   A-Time   | Buffers |                                                                                                                                                                                                                        
+------------------------------------------------------------------------------------                                                                                                                                                                                                                        
+|   0 | SELECT STATEMENT  |      |      1 |        |      4 |00:00:00.01 |       8 |                                                                                                                                                                                                                        
+|*  1 |  TABLE ACCESS FULL| EMP2 |      1 |      4 |      4 |00:00:00.01 |       8 |                                                                                                                                                                                                                        
+------------------------------------------------------------------------------------                                                                                                                                                                                                                        
+
+--BUUFFER : MEMORY 읽은 양
+
+--* GOAL: REDUCE A-TIME or/and BUFFERS
+
+
+-- INDEX COLUMN에 변형을 일으키거나 묵시적 형 변환이 일어나는 경우는
+-- INDEX SCAN이 정상적으로 발생하지 않음
+
+--예) SUBSTR 
+;
+SELECT * FROM EMP WHERE SUBSTR(EMPNO, 2, 1) = 3;
+
+------------------------------------------------------------------------------------                                                                                                                                                                                                                        
+| Id  | Operation         | Name | Starts | E-Rows | A-Rows |   A-Time   | Buffers |                                                                                                                                                                                                                        
+------------------------------------------------------------------------------------                                                                                                                                                                                                                        
+|   0 | SELECT STATEMENT  |      |      1 |        |      1 |00:00:00.01 |       8 |                                                                                                                                                                                                                        
+|*  1 |  TABLE ACCESS FULL| EMP  |      1 |      1 |      1 |00:00:00.01 |       8 |                                                                                                                                                                                                                        
+------------------------------------------------------------------------------------                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                                                                            
+Predicate Information (identified by operation id):                                                                                                                                                                                                                                                         
+---------------------------------------------------                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                                                                            
+1 - filter(TO_NUMBER(SUBSTR(TO_CHAR("EMPNO"),2,1))=3);    <--****
+
+--*** IN ORDER TO SUBSTR ( MUST BE CHAR!!--
+
+SELECT * FROM EMP WHERE SUBSTR(EMPNO, 2, 1) = '3';
+
+--SKIPPED SCAN INDEX. MANUALLY SETTING (ORACLE HINT)
+
+DROP INDEX IDX_STD_GRADE_NAME;
+CREATE INDEX IDX_STD_GRADE_NAME ON STUDENT(GRADE, NAME);
+
+SELECT GRADE, NAME, DEPTNO1         --NOW FULL SCAN IS HAPPENING!
+  FROM STUDENT
+ WHERE NAME = '서진수';
+
+---------------------------------------------------------------------------------------                                                                                                                                                                                                                     
+| Id  | Operation         | Name    | Starts | E-Rows | A-Rows |   A-Time   | Buffers |                                                                                                                                                                                                                     
+---------------------------------------------------------------------------------------                                                                                                                                                                                                                     
+|   0 | SELECT STATEMENT  |         |      1 |        |      1 |00:00:00.01 |       8 |                                                                                                                                                                                                                     
+|*  1 |  TABLE ACCESS FULL| STUDENT |      1 |      1 |      1 |00:00:00.01 |       8 |                                                                                                                                                                                                                     
+---------------------------------------------------------------------------------------    
+
+-- HINT!!!
+SELECT /*+ INDEX_SS(STUDENT IDX_STD_GRADE_NAME) */ GRADE, NAME, DEPTNO1
+  FROM STUDENT
+ WHERE NAME = '서진수';
+
+------------------------------------------------------------------------------------------------------------                                                                                                                                                                                                
+| Id  | Operation                   | Name               | Starts | E-Rows | A-Rows |   A-Time   | Buffers |                                                                                                                                                                                                
+------------------------------------------------------------------------------------------------------------                                                                                                                                                                                                
+|   0 | SELECT STATEMENT            |                    |      1 |        |      1 |00:00:00.01 |       3 |                                                                                                                                                                                                
+|   1 |  TABLE ACCESS BY INDEX ROWID| STUDENT            |      1 |      1 |      1 |00:00:00.01 |       3 |                                                                                                                                                                                                
+|*  2 |   INDEX SKIP SCAN           | IDX_STD_GRADE_NAME |      1 |      1 |      1 |00:00:00.01 |       2 |;                                                                                                                                                                                                
+------------------------------------------------------------------------------------------------------------    
+
+SELECt *
+  FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));
+  
+--WHEN SKIPPED SCAN IS GOOD -- 선두컬럼의 DISTINCT 갯수가 적을때. 예) 2개. AND 따라오는 컬럼의 선택이 적을때..?
+-- 전통적으로는 (9i ETC) FULL SCAN 이 안 좋았지만!
+-- 최신에는 MULTI-BLOCK 을 허용하여 병렬처리 가능해져서 FULL SCAN이 좋을 때가 있다. EX) INDEX FAST FULL SCAN!
+
+SELECT /*+ INDEX_FFS(STUDENT IDX_STD_GRADE_NAME) */ GRADE, NAME, DEPTNO1
+  FROM STUDENT
+ WHERE NAME = '서진수';
+
+------------------------------------------------------------------------------------------------------------                                                                                                                                                                                                
+| Id  | Operation                   | Name               | Starts | E-Rows | A-Rows |   A-Time   | Buffers |                                                                                                                                                                                                
+------------------------------------------------------------------------------------------------------------                                                                                                                                                                                                
+|   0 | SELECT STATEMENT            |                    |      1 |        |      1 |00:00:00.01 |       3 |                                                                                                                                                                                                
+|   1 |  TABLE ACCESS BY INDEX ROWID| STUDENT            |      1 |      1 |      1 |00:00:00.01 |       3 |                                                                                                                                                                                                
+|*  2 |   INDEX FULL SCAN           | IDX_STD_GRADE_NAME |      1 |      1 |      1 |00:00:00.01 |       2 | ;                                                                                                                                                                                               
+------------------------------------------------------------------------------------------------------------ 
+
+-- FFS vs. SS have THE SAME BUFFER. NOW Compare A-TIME
+
+-- WHEN RUNNING THE SAME QUERY MULTIPLE TIMES - TIME REDUCE!
+-- WHEN THE FIRST QUERY IS EXCUTED, IT HAS TO COME UP WITH A 'PLAN'
+-- EVEN AFTER IT RAN, IN MEMORY THE 'PLAN' IS STILL STORED. THEREFORE SECOND TIME IS FASTER.
+
+SELECT * FROM USER_INDEXES;
+
+--============INDEX MANAGEMENT=================--
+
+-- INDEX 조회
+SELECT TABLE_NAME,
+       INDEX_NAME,
+       UNIQUENESS,
+       STATUS                   -- IF UNUSABLE : UNUSABLE
+  FROM USER_INDEXES;
+
+ALTER INDEX IDX_STD_JUMIN REBUILD;
+
+-- COLUMNS THAT ARE INDEX!
+-- ** USEFUL TO KNOW COLUMN_POSITION!!!
+SELECT TABLE_NAME,
+       INDEX_NAME,
+       COLUMN_NAME,
+       COLUMN_POSITION
+  FROM USER_IND_COLUMNS;
+
+--== INDEX 관리
+--1) UNUSABLE: 이미 생성되어진 인덱스의 변경을 잠시 중지하고 싶은 경우 사용
+-- 대용햘 INSERT 작업시 INDEX SPLIT 현상으로 작업이 느려지므로
+-- 먼저 DATA를 이관한 후 INDEX REBUILD 처리
+ALTER INDEX PK_EMP UNUSABLE;
+ALTER INDEX PK_EMP REBUILD;
+
+--2) INVISIBLE : OPTIMIZER가 해당 인덱스흫 타지 못하게 막는 작업
+-- 인덱스를 삭제 했다가 다시 만들면 오래 걸리므로 잠시 못보게 하는것
+ALTER INDEX PK_EMP INVISIBLE;
+ALTER INDEX PK_EMP VISIBLE;
+
+-- 인덱스의 변경 되지만. OPTIMIZER (ORACLE) QUERY 처리 할때는 인덱스가 없는 것 처럼!
+--예) OPTIMIZER IS BEING STUPID AND USING WRONG INDEX.
+
+DESC USER_INDEXES;          -- STATUS : UNSUABLE / REBUILD    
+
+--** UNSUABLE를 사용후 TRUNCATE를 실행하면 다시 REBUILD 됨..!
+
+--***** VIEW 들을 모와 놓은 VIEW
+SELECT * FROM ALL_VIEWS WHERE VIEW_NAME LIKE 'USER_%'; --*!*!*!! 
+
+SELECT * FROM ALL_VIEWS;
